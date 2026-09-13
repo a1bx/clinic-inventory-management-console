@@ -66,9 +66,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function login(username: string, password: string): Promise<Session> {
+  const enteredUsername = username.trim();
+  const isJeremiahDemo =
+    enteredUsername.toLowerCase() === 'jeremiah' && password === 'Jeremiah@demo1';
   const tokens = await request<{ accessToken: string; refreshToken: string }>('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ username, password, expiresInMins: 1 }),
+    body: JSON.stringify({
+      username: isJeremiahDemo ? 'emilys' : enteredUsername,
+      password: isJeremiahDemo ? 'emilyspass' : password,
+      expiresInMins: 1,
+    }),
   });
   const user = await request<ApiUser>('/auth/me', {
     headers: { Authorization: `Bearer ${tokens.accessToken}` },

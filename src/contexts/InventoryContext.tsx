@@ -5,11 +5,14 @@ import {
   getProducts,
   login as apiLogin,
   refreshSession,
-  searchProducts,
   updateProduct,
   type ApiUser,
 } from '../api/dummyJson';
-import { applyClinicProfile, productToInventoryItem } from '../utils/product';
+import {
+  applyClinicProfile,
+  isItemAvailableAtClinic,
+  productToInventoryItem,
+} from '../utils/product';
 import type {
   Adjustment,
   AdjustmentDraft,
@@ -21,10 +24,23 @@ const SESSION_KEY = 'savannah-session';
 const OVERRIDES_KEY = 'savannah-stock-overrides';
 const ADDED_ITEMS_KEY = 'savannah-added-items';
 const ADJUSTMENTS_KEY = 'savannah-adjustments';
+const PENDING_KEY = 'savannah-pending-sync';
 interface StoredSession {
   accessToken: string;
   refreshToken: string;
   user: ApiUser;
+}
+interface PendingChange {
+  id: string;
+  type: 'adjustment' | 'addition';
+  clinicId: string;
+  itemId: string;
+  adjustmentId?: string;
+  countedQty?: number;
+}
+
+function getQueuedCount(change: PendingChange) {
+  return change.countedQty ?? 0;
 }
 interface InventoryContextValue {
   authenticated: boolean;
@@ -85,8 +101,11 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const [adjustments, setAdjustments] = useState<Adjustment[]>(() =>
     readStorage(ADJUSTMENTS_KEY, []),
   );
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnlineState] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState<PendingChange[]>(() =>
+    readStorage(PENDING_KEY, []),
+  );
   const [clinicId, setClinicIdState] = useState('clinic-northgate');
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -108,6 +127,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.removeItem(OVERRIDES_KEY);
     sessionStorage.removeItem(ADDED_ITEMS_KEY);
     sessionStorage.removeItem(ADJUSTMENTS_KEY);
+    sessionStorage.removeItem(PENDING_KEY);
     setSession(null);
     setItems([]);
     setAdjustments([]);
@@ -117,15 +137,25 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     setClinicIdState(nextClinicId);
     setItems([]);
   }, []);
+  const setIsOnline = useCallback((online: boolean) => setIsOnlineState(online), []);
+  const enqueuePending = useCallback((change: PendingChange) => {
+    setPendingChanges((current) => {
+      const next = [...current, change];
+      writeStorage(PENDING_KEY, next);
+      return next;
+    });
+  }, []);
   const searchItems = useCallback(
     async (query: string, signal?: AbortSignal) => {
-      if (!session || !query.trim()) return [];
-      const response = await searchProducts(session.accessToken, query.trim(), signal);
-      return (response.products ?? [])
-        .map(productToInventoryItem)
-        .map((item) => applyClinicProfile(item, clinicId));
+      if (!session || !query.trim() || signal?.aborted) return [];
+      const normalized = query.trim().toLowerCase();
+      return items.filter((item) =>
+        [item.name, item.sku, item.category, item.location, item.supplier]
+          .filter(Boolean)
+          .some((value) => typeof value === 'string' && value.toLowerCase().includes(normalized)),
+      );
     },
-    [clinicId, session],
+    [items, session],
   );
 
   useEffect(() => {
@@ -141,6 +171,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
           const apiItems = (response.products ?? [])
             .map(productToInventoryItem)
             .map((item) => applyClinicProfile(item, clinicId))
+            .filter((item) => isItemAvailableAtClinic(item, clinicId))
             .map((item) => ({ ...item, ...overrides[`${clinicId}:${item.id}`] }));
           setItems([...addedItems.filter((item) => item.clinicId === clinicId), ...apiItems]);
           setAdjustments(readStorage<Adjustment[]>(ADJUSTMENTS_KEY, []));
@@ -170,11 +201,108 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     };
   }, [clinicId, session, reloadKey, logout]);
 
+  useEffect(() => {
+    if (!isOnline || !session || pendingChanges.length === 0) return;
+    let cancelled = false;
+    const sync = async () => {
+      setIsSyncing(true);
+      const completed: PendingChange[] = [];
+      for (const change of pendingChanges) {
+        if (change.type === 'addition') {
+          completed.push(change);
+          continue;
+        }
+        try {
+          await updateProduct(session.accessToken, change.itemId, getQueuedCount(change));
+          completed.push(change);
+        } catch {
+          // Leave failed changes queued for the next reconnect attempt.
+        }
+      }
+      if (!cancelled && completed.length > 0) {
+        const completedIds = new Set(completed.map((change) => change.id));
+        setPendingChanges((current) => {
+          const next = current.filter((change) => !completedIds.has(change.id));
+          writeStorage(PENDING_KEY, next);
+          return next;
+        });
+        setAdjustments((current) => {
+          const adjustmentIds = new Set(
+            completed.map((change) => change.adjustmentId).filter(Boolean),
+          );
+          const next = current.map((adjustment) =>
+            adjustmentIds.has(adjustment.id) ? { ...adjustment, synced: true } : adjustment,
+          );
+          writeStorage(ADJUSTMENTS_KEY, next);
+          return next;
+        });
+        toast.success(
+          `Synced ${completed.length} saved change${completed.length === 1 ? '' : 's'}`,
+        );
+      }
+      if (!cancelled) setIsSyncing(false);
+    };
+    const timer = window.setTimeout(() => void sync(), 350);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [isOnline, pendingChanges, session]);
+
   const submitAdjustment = useCallback(
     async (draft: AdjustmentDraft) => {
       if (!session) return false;
       const item = items.find((candidate) => candidate.id === draft.itemId);
       if (!item) return false;
+      if (!isOnline) {
+        const countedAt = new Date().toISOString();
+        const adjustment: Adjustment = {
+          id: `adj-${Date.now()}`,
+          itemId: draft.itemId,
+          clinicId,
+          at: countedAt,
+          by: session ? `${session.user.firstName} ${session.user.lastName}` : 'Current user',
+          systemQty: item.onHand,
+          countedQty: draft.countedQty,
+          delta: draft.countedQty - item.onHand,
+          reason: draft.reason,
+          note: draft.note.trim(),
+          synced: false,
+        };
+        const savedItem = {
+          ...item,
+          onHand: draft.countedQty,
+          lastCountedAt: countedAt,
+          lastCountedBy: adjustment.by,
+        };
+        setItems((current) =>
+          current.map((candidate) => (candidate.id === savedItem.id ? savedItem : candidate)),
+        );
+        const overrides = readStorage<Record<string, Partial<InventoryItem>>>(OVERRIDES_KEY, {});
+        overrides[`${clinicId}:${savedItem.id}`] = {
+          onHand: savedItem.onHand,
+          lastCountedAt: savedItem.lastCountedAt,
+          lastCountedBy: savedItem.lastCountedBy,
+        };
+        writeStorage(OVERRIDES_KEY, overrides);
+        setAdjustments((current) => {
+          const next = [adjustment, ...current];
+          writeStorage(ADJUSTMENTS_KEY, next);
+          return next;
+        });
+        enqueuePending({
+          id: `pending-${adjustment.id}`,
+          type: 'adjustment',
+          clinicId,
+          itemId: draft.itemId,
+          adjustmentId: adjustment.id,
+          countedQty: draft.countedQty,
+        });
+        toast.success(`Saved ${item.name} offline`, {
+          description: 'This correction is waiting to sync.',
+        });
+        return true;
+      }
       setIsSyncing(true);
       try {
         let activeSession = session;
@@ -236,7 +364,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         setIsSyncing(false);
       }
     },
-    [clinicId, items, session],
+    [clinicId, enqueuePending, isOnline, items, session],
   );
 
   const addStockItem = useCallback(
@@ -262,9 +390,21 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       setItems((current) => [item, ...current]);
       const addedItems = readStorage<InventoryItem[]>(ADDED_ITEMS_KEY, []);
       writeStorage(ADDED_ITEMS_KEY, [item, ...addedItems]);
-      toast.success(`${item.name} added to clinic stock`);
+      if (!isOnline) {
+        enqueuePending({
+          id: `pending-${item.id}`,
+          type: 'addition',
+          clinicId,
+          itemId: item.id,
+        });
+        toast.success(`${item.name} saved offline`, {
+          description: 'This stock item is waiting to sync.',
+        });
+      } else {
+        toast.success(`${item.name} added to clinic stock`);
+      }
     },
-    [clinicId, session],
+    [clinicId, enqueuePending, isOnline, session],
   );
 
   const value = useMemo<InventoryContextValue>(
@@ -286,8 +426,9 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
           (item) => item.itemId === itemId && (item.clinicId ?? 'clinic-northgate') === clinicId,
         ),
       itemById: (itemId) => items.find((item) => item.id === itemId),
-      hasPendingSync: () => false,
-      pendingCount: 0,
+      hasPendingSync: (itemId) =>
+        pendingChanges.some((change) => change.itemId === itemId && change.clinicId === clinicId),
+      pendingCount: pendingChanges.filter((change) => change.clinicId === clinicId).length,
       isOnline,
       isSyncing,
       setIsOnline,
@@ -314,6 +455,8 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       addStockItem,
       clinicId,
       setClinicId,
+      setIsOnline,
+      pendingChanges,
     ],
   );
   return <InventoryContext.Provider value={value}>{children}</InventoryContext.Provider>;

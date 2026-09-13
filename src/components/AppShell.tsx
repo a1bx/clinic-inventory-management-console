@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Boxes, ChevronDown, Wifi } from 'lucide-react';
+import { Boxes, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from './ui/Button';
 import { ConnectionToggle, OfflineBanner } from './SyncStatus';
@@ -12,9 +12,28 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
-  const { clinicId, setClinicId, user, logout } = useInventory();
+  const { clinicId, setClinicId, logout } = useInventory();
   const clinic = clinics.find((c) => c.id === clinicId) ?? clinics[0];
-  const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`;
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const displayName = 'Jeremiah Nyok';
+  const initials = 'JN';
+
+  useEffect(() => {
+    if (!profileOpen) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!profileRef.current?.contains(event.target as Node)) setProfileOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setProfileOpen(false);
+    };
+    document.addEventListener('pointerdown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [profileOpen]);
 
   return (
     <div className="clinic-app flex min-h-screen w-full flex-col bg-page text-foreground">
@@ -40,16 +59,25 @@ export function AppShell({ children }: AppShellProps) {
           <div className="ml-auto flex items-center gap-3 sm:gap-5">
             <ConnectionToggle />
             <div className="hidden h-8 w-px bg-slate-200 sm:block" aria-hidden="true" />
-            <div className="hidden items-center gap-3 sm:flex">
-              <div className="text-right leading-tight">
-                <p className="text-xs font-semibold text-slate-900">
-                  {user?.firstName} {user?.lastName}
-                </p>
-                <p className="mt-0.5 text-xs text-slate-500">Supplies team</p>
-              </div>
-              <span className="flex size-10 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-xs font-semibold text-slate-700">
+            <div ref={profileRef} className="relative">
+              <button
+                type="button"
+                className="flex size-10 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => setProfileOpen((open) => !open)}
+                aria-label="Open user profile"
+                aria-expanded={profileOpen}
+              >
                 {initials}
-              </span>
+              </button>
+              {profileOpen && (
+                <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-xl shadow-slate-900/10">
+                  <p className="text-sm font-semibold text-slate-900">{displayName}</p>
+                  <p className="mt-1 text-xs text-slate-500">Supplies team</p>
+                  <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-400">
+                    Signed in as <span className="font-medium text-slate-600">Jeremiah</span>
+                  </p>
+                </div>
+              )}
             </div>
             <Button
               variant="ghost"

@@ -105,24 +105,19 @@ export function ItemDetail() {
   return (
     <div className="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-8 lg:py-8">
       <div className="mb-5 flex items-center justify-between gap-4">
-        <Button variant="ghost" asChild className="ml-2 text-slate-600 flex flex-column-1">
+        <Button
+          variant="ghost"
+          asChild
+          className="ml-2 inline-flex items-center gap-2 text-slate-600"
+        >
           <Link to={{ pathname: '/', search: location.search }}>
             <ArrowLeft className="size-4" />
-            back
+            Back
           </Link>
         </Button>
       </div>
 
       <section className="surface surface-raised overflow-hidden rounded-2xl bg-white">
-        <div
-          aria-hidden="true"
-          className={cn(
-            'h-1 w-full',
-            status === 'out' && 'bar-out',
-            status === 'low' && 'bar-low',
-            status === 'ok' && 'bar-ok',
-          )}
-        />
         <div className="p-5 sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">

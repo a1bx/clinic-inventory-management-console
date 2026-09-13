@@ -28,7 +28,8 @@ interface InventoryListProps {
 }
 
 export function InventoryList({ defaultSort = 'name' }: InventoryListProps) {
-  const { items, searchItems, loading, error, reload, pendingCount, clinicId } = useInventory();
+  const { items, searchItems, loading, error, reload, pendingCount, hasPendingSync, clinicId } =
+    useInventory();
   const { filters, update, toggleCategory, clearAll, isFiltered, search } =
     useInventoryFilters(defaultSort);
   const [adjusting, setAdjusting] = useState<InventoryItem | null>(null);
@@ -68,10 +69,10 @@ export function InventoryList({ defaultSort = 'name' }: InventoryListProps) {
     };
   }, [filters.query, searchItems, searchRetry]);
 
-  const results = useMemo(
-    () => filterAndSortItems(searchResults ?? items, filters),
-    [items, searchResults, filters],
-  );
+  const results = useMemo(() => {
+    const filtered = filterAndSortItems(searchResults ?? items, filters);
+    return filters.pending ? filtered.filter((item) => hasPendingSync(item.id)) : filtered;
+  }, [hasPendingSync, items, searchResults, filters]);
   const pageSize = 7;
   const pageCount = Math.max(1, Math.ceil(results.length / pageSize));
   const page = Math.min(filters.page, pageCount);
@@ -135,15 +136,6 @@ export function InventoryList({ defaultSort = 'name' }: InventoryListProps) {
             variant="outline"
             size="sm"
             className="h-10 rounded-xl border-slate-300 bg-white"
-            onClick={() => void shareView()}
-          >
-            <ExternalLink className="size-4" />
-            Share link
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-10 rounded-xl border-slate-300 bg-white"
             onClick={exportCsv}
           >
             <Download className="size-4" />
@@ -161,7 +153,9 @@ export function InventoryList({ defaultSort = 'name' }: InventoryListProps) {
           items={items}
           status={filters.status}
           pendingCount={pendingCount}
-          onStatusChange={(status) => update({ status })}
+          pending={filters.pending}
+          onStatusChange={(status) => update({ status, pending: false })}
+          onPendingChange={(pending) => update({ pending })}
         />
 
         <FilterBar
@@ -261,9 +255,6 @@ function Pagination({
       <span className="text-center text-sm text-muted-foreground" aria-live="polite">
         <span className="block">
           Page {page} of {pageCount}
-        </span>
-        <span className="text-xs">
-          {Math.min(pageSize, resultCount - (page - 1) * pageSize)} supplies on this page
         </span>
       </span>
       <Button

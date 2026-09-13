@@ -8,10 +8,19 @@ interface StockSummaryProps {
   items: InventoryItem[];
   status: StatusFilter;
   pendingCount: number;
+  pending: boolean;
   onStatusChange: (status: StatusFilter) => void;
+  onPendingChange: (pending: boolean) => void;
 }
 
-export function StockSummary({ items, status, pendingCount, onStatusChange }: StockSummaryProps) {
+export function StockSummary({
+  items,
+  status,
+  pendingCount,
+  pending,
+  onStatusChange,
+  onPendingChange,
+}: StockSummaryProps) {
   const out = items.filter((i) => stockStatus(i) === 'out').length;
   const low = items.filter((i) => stockStatus(i) === 'low').length;
 
@@ -59,16 +68,19 @@ export function StockSummary({ items, status, pendingCount, onStatusChange }: St
   return (
     <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       {tiles.map((tile) => {
-        const selectable = tile.key !== 'sync';
-        const active = selectable && status === tile.key;
-        const Wrapper = selectable ? 'button' : 'div';
+        const selectable = true;
+        const active = tile.key === 'sync' ? pending : status === tile.key;
+        const Wrapper = 'button';
         return (
           <li key={tile.key}>
             <Wrapper
               {...(selectable
                 ? {
                     type: 'button' as const,
-                    onClick: () => onStatusChange(tile.key as StatusFilter),
+                    onClick: () =>
+                      tile.key === 'sync'
+                        ? onPendingChange(!pending)
+                        : onStatusChange(tile.key as StatusFilter),
                     'aria-pressed': active,
                   }
                 : {})}

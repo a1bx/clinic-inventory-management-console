@@ -7,6 +7,7 @@ export interface InventoryFilters {
   query: string;
   categories: string[];
   status: StatusFilter;
+  pending: boolean;
   sort: SortKey;
   page: number;
 }
@@ -23,6 +24,7 @@ export function useInventoryFilters(defaultSort: SortKey = 'name') {
       query: params.get('q') ?? '',
       categories: params.get('cat')?.split(',').filter(Boolean) ?? [],
       status: rawStatus && statuses.includes(rawStatus) ? rawStatus : 'all',
+      pending: params.get('pending') === '1',
       sort: rawSort && rawSort in sortLabels ? rawSort : defaultSort,
       page: Math.max(1, Number(params.get('page') ?? '1') || 1),
     };
@@ -39,6 +41,7 @@ export function useInventoryFilters(defaultSort: SortKey = 'name') {
       if (merged.query) draft.set('q', merged.query);
       if (merged.categories.length) draft.set('cat', merged.categories.join(','));
       if (merged.status !== 'all') draft.set('status', merged.status);
+      if (merged.pending) draft.set('pending', '1');
       if (merged.sort !== defaultSort) draft.set('sort', merged.sort);
       if (merged.page > 1) draft.set('page', String(merged.page));
       setParams(draft, { replace: true });
@@ -61,7 +64,10 @@ export function useInventoryFilters(defaultSort: SortKey = 'name') {
   }, [setParams]);
 
   const isFiltered =
-    Boolean(filters.query) || filters.categories.length > 0 || filters.status !== 'all';
+    Boolean(filters.query) ||
+    filters.categories.length > 0 ||
+    filters.status !== 'all' ||
+    filters.pending;
 
   return { filters, update, toggleCategory, clearAll, isFiltered, search: params.toString() };
 }

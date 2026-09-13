@@ -370,3 +370,12 @@ export function applyClinicProfile(item: InventoryItem, clinicId: string): Inven
     supplier: 'Riverside clinical procurement',
   };
 }
+
+/** Keep a meaningful overlap while allowing each clinic to own different stock. */
+export function isItemAvailableAtClinic(item: InventoryItem, clinicId: string): boolean {
+  const sourceId = Number(item.id);
+  if (!Number.isFinite(sourceId)) return true;
+  if (clinicId === 'clinic-northgate') return sourceId % 7 !== 0;
+  if (clinicId === 'clinic-riverside') return sourceId % 5 !== 0;
+  return true;
+}

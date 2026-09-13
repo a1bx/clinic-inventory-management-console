@@ -7,8 +7,8 @@ import { useInventory } from '../contexts/InventoryContext';
 
 export function Login() {
   const { login, authLoading, authError } = useInventory();
-  const [username, setUsername] = useState('emilys');
-  const [password, setPassword] = useState('emilyspass');
+  const [username, setUsername] = useState(import.meta.env.VITE_DEMO_USERNAME ?? 'Jeremiah');
+  const [password, setPassword] = useState(import.meta.env.VITE_DEMO_PASSWORD ?? 'Jeremiah@demo1');
   const [showPassword, setShowPassword] = useState(false);
 
   const submit = async (event: FormEvent) => {

@@ -37,4 +37,18 @@ describe('stock rules', () => {
     expect(result.map((candidate) => candidate.id)).toEqual(['1']);
     expect(source.map((candidate) => candidate.id)).toEqual(['2', '1']);
   });
+
+  it('does not search hidden source catalogue names', () => {
+    const samsungMappedItem = {
+      ...item('4', 'Adult multivitamin supplements', 10),
+      sourceName: 'Samsung Galaxy',
+    };
+    const result = filterAndSortItems([samsungMappedItem], {
+      query: 'samsung',
+      categories: [],
+      status: 'all',
+      sort: 'name',
+    });
+    expect(result).toHaveLength(0);
+  });
 });

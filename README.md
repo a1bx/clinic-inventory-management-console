@@ -30,7 +30,7 @@ npm install
 npm run dev
 ```
 
-Use `emilys` / `emilyspass`, the credentials supplied by DummyJSON. Checks are `npm run format:check`, `npm run lint`, `npm test -- --run`, and `npm run build`.
+Use `Jeremiah` / `Jeremiah@demo1`. The app maps these presentation credentials to the valid DummyJSON demo account behind the scenes. To use another valid DummyJSON account, set `VITE_DEMO_USERNAME` and `VITE_DEMO_PASSWORD` in the Vercel project environment. Checks are `npm run format:check`, `npm run lint`, `npm test -- --run`, and `npm run build`.
 
 To test the slow-search race condition locally, start with `VITE_API_DELAY=2000 npm run dev`, type one query, then immediately replace it with another. The earlier response is aborted and cannot overwrite the newer results. After signing in, adding `?error=500` to the list URL exercises the real DummyJSON `/http/500` error response and the retry state.
 
