@@ -150,9 +150,9 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       if (!session || !query.trim() || signal?.aborted) return [];
       const normalized = query.trim().toLowerCase();
       return items.filter((item) =>
-        [item.name, item.sku, item.category, item.location, item.supplier]
-          .filter(Boolean)
-          .some((value) => typeof value === 'string' && value.toLowerCase().includes(normalized)),
+        [item.name, item.sku, item.category, item.location, item.supplier].some((value) =>
+          value.toLowerCase().includes(normalized),
+        ),
       );
     },
     [items, session],

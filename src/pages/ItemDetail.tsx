@@ -1,15 +1,5 @@
 import { useState } from 'react';
-import {
-  ArrowLeft,
-  Check,
-  Clock3,
-  Download,
-  ExternalLink,
-  Info,
-  Link2,
-  PackagePlus,
-  Thermometer,
-} from 'lucide-react';
+import { ArrowLeft, Check, Clock3, Download, Link2, PackagePlus, Thermometer } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '../components/ui/Button';
@@ -21,7 +11,6 @@ import { PendingSyncTag } from '../components/SyncStatus';
 import { useInventory } from '../contexts/InventoryContext';
 import { cn } from '../utils/cn';
 import { expiryLabel, fullTime, relativeTime, stockStatus } from '../utils/stock';
-import { clinics } from '../data/inventory';
 
 export function ItemDetail() {
   const { itemId = '' } = useParams();
@@ -62,7 +51,6 @@ export function ItemDetail() {
 
   const history = adjustmentsForItem(item.id);
   const expiry = expiryLabel(item.expiresOn);
-  const clinic = clinics.find((c) => c.id === item.clinicId);
   const status = stockStatus(item);
   const coldChain = item.location.toLowerCase().includes('fridge');
   const needsReview = status !== 'ok';

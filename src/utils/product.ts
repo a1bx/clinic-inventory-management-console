@@ -345,9 +345,6 @@ export function productToInventoryItem(product: ApiProduct): InventoryItem {
     lastCountedAt: now,
     lastCountedBy: 'System import',
     clinicId: 'clinic-northgate',
-    sourceName: product.title,
-    sourceCategory: product.category,
-    sourceSupplier: product.brand,
   };
 }
 
@@ -375,7 +372,7 @@ export function applyClinicProfile(item: InventoryItem, clinicId: string): Inven
 export function isItemAvailableAtClinic(item: InventoryItem, clinicId: string): boolean {
   const sourceId = Number(item.id);
   if (!Number.isFinite(sourceId)) return true;
-  if (clinicId === 'clinic-northgate') return sourceId % 7 !== 0;
+  if (clinicId === 'clinic-northgate') return true;
   if (clinicId === 'clinic-riverside') return sourceId % 5 !== 0;
   return true;
 }

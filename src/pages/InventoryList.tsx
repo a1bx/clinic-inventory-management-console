@@ -1,13 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Activity,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  ExternalLink,
-  PackageSearch,
-  Plus,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, PackageSearch, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../components/ui/Button';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -20,7 +12,6 @@ import { AddStockDialog } from '../components/AddStockDialog';
 import { useInventory } from '../contexts/InventoryContext';
 import { useInventoryFilters } from '../hooks/useInventoryFilters';
 import { filterAndSortItems } from '../utils/stock';
-import { clinics } from '../data/inventory';
 import type { InventoryItem, SortKey } from '../types/inventory';
 
 interface InventoryListProps {
@@ -28,7 +19,7 @@ interface InventoryListProps {
 }
 
 export function InventoryList({ defaultSort = 'name' }: InventoryListProps) {
-  const { items, searchItems, loading, error, reload, pendingCount, hasPendingSync, clinicId } =
+  const { items, searchItems, loading, error, reload, pendingCount, hasPendingSync } =
     useInventory();
   const { filters, update, toggleCategory, clearAll, isFiltered, search } =
     useInventoryFilters(defaultSort);
@@ -77,17 +68,7 @@ export function InventoryList({ defaultSort = 'name' }: InventoryListProps) {
   const pageCount = Math.max(1, Math.ceil(results.length / pageSize));
   const page = Math.min(filters.page, pageCount);
   const visibleResults = results.slice((page - 1) * pageSize, page * pageSize);
-  const clinic = clinics.find((c) => c.id === clinicId);
   const linkSearch = search ? `?${search}` : '';
-
-  const shareView = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      toast.success('Inventory view link copied');
-    } catch {
-      toast.error('Could not copy the inventory link');
-    }
-  };
 
   const exportCsv = () => {
     const rows = [
@@ -194,8 +175,6 @@ export function InventoryList({ defaultSort = 'name' }: InventoryListProps) {
         <Pagination
           page={page}
           pageCount={pageCount}
-          resultCount={results.length}
-          pageSize={pageSize}
           onPageChange={(next) => update({ page: next })}
         />
       </div>
@@ -227,14 +206,10 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 function Pagination({
   page,
   pageCount,
-  resultCount,
-  pageSize,
   onPageChange,
 }: {
   page: number;
   pageCount: number;
-  resultCount: number;
-  pageSize: number;
   onPageChange: (page: number) => void;
 }) {
   if (pageCount <= 1) return null;

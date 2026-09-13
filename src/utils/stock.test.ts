@@ -38,12 +38,8 @@ describe('stock rules', () => {
     expect(source.map((candidate) => candidate.id)).toEqual(['2', '1']);
   });
 
-  it('does not search hidden source catalogue names', () => {
-    const samsungMappedItem = {
-      ...item('4', 'Adult multivitamin supplements', 10),
-      sourceName: 'Samsung Galaxy',
-    };
-    const result = filterAndSortItems([samsungMappedItem], {
+  it('does not match unrelated retail terms to clinical items', () => {
+    const result = filterAndSortItems([item('4', 'Adult multivitamin supplements', 10)], {
       query: 'samsung',
       categories: [],
       status: 'all',

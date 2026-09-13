@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>Clinic Stock Console</title>
+  <rect width="64" height="64" rx="16" fill="#07101f"/>
+  <path d="m32 12 18 10v20L32 52 14 42V22l18-10Z" fill="none" stroke="#fff" stroke-width="4" stroke-linejoin="round"/>
+  <path d="m14 22 18 10 18-10M32 32v20" fill="none" stroke="#fff" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M27 23h10M32 18v10" stroke="#34d399" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -25,9 +25,6 @@ export interface InventoryItem {
   lastCountedAt: string;
   lastCountedBy: string;
   clinicId: string;
-  sourceName?: string;
-  sourceCategory?: string;
-  sourceSupplier?: string;
 }
 
 export interface Adjustment {
