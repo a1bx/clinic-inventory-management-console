@@ -1,6 +1,8 @@
 # Clinic stock console
 
-This project is a TypeScript/React implementation of the Savannah Informatics web engineer assessment. The deployed URL is **to be added after deployment**.
+This project is a TypeScript/React implementation of the Savannah Informatics web engineer assessment.
+
+Deployed application: https://clinic-inventory-management-console.vercel.app/
 
 ## Design and decisions
 
@@ -28,14 +30,14 @@ npm run dev
 
 Use `emilys` / `emilyspass`, the credentials supplied by DummyJSON. Checks are `npm run format:check`, `npm run lint`, `npm test -- --run`, and `npm run build`.
 
+To test the slow-search race condition locally, start with `VITE_API_DELAY=2000 npm run dev`, type one query, then immediately replace it with another. The earlier response is aborted and cannot overwrite the newer results. After signing in, adding `?error=500` to the list URL exercises the real DummyJSON `/http/500` error response and the retry state.
+
 ## CI/CD
 
-GitHub Actions runs formatting, linting, tests and build on pull requests. A failed check blocks the merge when branch protection is enabled. The `main` job is the deployment trigger; configure the final provider deploy hook in the marked workflow step and add the public URL above.
+GitHub Actions runs formatting, linting, commit-message validation, tests and build on pull requests. A failed check blocks the merge when branch protection is enabled. Merges to `main` deploy to Vercel using `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` repository secrets.
 
 ## AI reflection
 
 AI was used for scaffolding, repetitive React markup, API type definitions, and this documentation draft. I directed the implementation and reviewed the behavior against the assessment outcomes. I did not delegate the design decisions or this reflection: the design choices above are my own and should be edited to reflect the actual time and tools used before submission.
 
 No spec-driven framework was used; work was structured by implementing the four assessment sections in order and checking each required user outcome. One useful AI suggestion was aborting stale requests with `AbortController`; one risk I caught was that DummyJSON PUT responses are not durable, so this app documents that limitation instead of implying persistence. Decisions made without AI were the fallback mapping for generic product fields and retaining a failed correction's original count because they are domain/product judgments.
-
-Before submission, replace this placeholder reflection with the real tools, prompts, time spent, and one code area you would not yet defend confidently.# clinic-inventory-management-console

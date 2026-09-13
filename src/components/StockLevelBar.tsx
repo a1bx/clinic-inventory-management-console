@@ -6,16 +6,10 @@ import type { InventoryItem } from '../types/inventory';
 const fills = {
   out: 'bar-out',
   low: 'bar-low',
-  ok: 'bar-ok'
+  ok: 'bar-ok',
 } as const;
 
-export function StockLevelBar({
-  item,
-  className
-
-
-
-}: {item: InventoryItem;className?: string;}) {
+export function StockLevelBar({ item, className }: { item: InventoryItem; className?: string }) {
   const status = stockStatus(item);
   const percent = stockPercent(item);
 
@@ -24,16 +18,16 @@ export function StockLevelBar({
       <div
         className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
         role="img"
-        aria-label={`${item.onHand} of a target ${item.targetLevel} ${item.unit}`}>
-        
+        aria-label={`${item.onHand} of a target ${item.targetLevel} ${item.unit}`}
+      >
         <div
           className={cn('h-full rounded-full transition-all', fills[status])}
-          style={{ width: `${Math.max(percent, status === 'out' ? 0 : 3)}%` }} />
-        
+          style={{ width: `${Math.max(percent, status === 'out' ? 0 : 3)}%` }}
+        />
       </div>
       <p className="font-mono text-xs text-muted-foreground">
         reorder at {item.reorderPoint} · target {item.targetLevel}
       </p>
-    </div>);
-
+    </div>
+  );
 }

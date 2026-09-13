@@ -89,8 +89,20 @@ export async function refreshSession(refreshToken: string): Promise<Session> {
 
 export async function getProducts(
   accessToken: string,
-  params: { limit?: number; skip?: number; sortBy?: string; order?: string; signal?: AbortSignal } = {},
+  params: {
+    limit?: number;
+    skip?: number;
+    sortBy?: string;
+    order?: string;
+    signal?: AbortSignal;
+  } = {},
 ): Promise<ApiResponse<ApiProduct>> {
+  if (
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('error') === '500'
+  ) {
+    return request<ApiResponse<ApiProduct>>('/http/500');
+  }
   const query = new URLSearchParams({
     limit: String(params.limit ?? 194),
     skip: String(params.skip ?? 0),
@@ -108,7 +120,10 @@ export async function searchProducts(
   query: string,
   signal?: AbortSignal,
 ): Promise<ApiResponse<ApiProduct>> {
-  return request<ApiResponse<ApiProduct>>(`/products/search?q=${encodeURIComponent(query)}`, {
+  const searchParams = new URLSearchParams({ q: query });
+  if (typeof import.meta !== 'undefined' && import.meta.env.VITE_API_DELAY)
+    searchParams.set('delay', import.meta.env.VITE_API_DELAY);
+  return request<ApiResponse<ApiProduct>>(`/products/search?${searchParams}`, {
     signal,
     headers: { Authorization: `Bearer ${accessToken}` },
   });

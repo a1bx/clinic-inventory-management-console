@@ -20,14 +20,14 @@ export function InventoryCards({ items, linkSearch, onCorrect }: InventoryCardsP
 
   return (
     <ul className="grid gap-3 sm:grid-cols-2 lg:hidden">
-      {items.map((item) =>
-      <li key={item.id} className="surface overflow-hidden rounded-2xl">
+      {items.map((item) => (
+        <li key={item.id} className="surface overflow-hidden rounded-2xl">
           <div className="p-4">
             <div className="flex items-start justify-between gap-3">
               <Link
-              to={{ pathname: `/items/${item.id}`, search: linkSearch }}
-              className="min-w-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              
+                to={{ pathname: `/items/${item.id}`, search: linkSearch }}
+                className="min-w-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
                 <p className="font-medium leading-snug">{item.name}</p>
                 <p className="mt-0.5 font-mono text-xs text-muted-foreground">
                   {item.sku} · {item.category}
@@ -38,9 +38,7 @@ export function InventoryCards({ items, linkSearch, onCorrect }: InventoryCardsP
 
             <div className="mt-4 flex items-end justify-between gap-4">
               <div>
-                <p className="tabular text-3xl font-semibold leading-none">
-                  {item.onHand}
-                </p>
+                <p className="tabular text-3xl font-semibold leading-none">{item.onHand}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{item.unit}</p>
               </div>
               <StockLevelBar item={item} className="flex-1 pb-0.5" />
@@ -58,22 +56,15 @@ export function InventoryCards({ items, linkSearch, onCorrect }: InventoryCardsP
           </div>
 
           <div className="flex gap-2 border-t hairline bg-muted p-3">
-            <Button
-            variant="default"
-            size="lg"
-            className="flex-1"
-            onClick={() => onCorrect(item)}>
-            
+            <Button variant="default" size="lg" className="flex-1" onClick={() => onCorrect(item)}>
               Correct count
             </Button>
             <Button variant="outline" size="lg" asChild>
-              <Link to={{ pathname: `/items/${item.id}`, search: linkSearch }}>
-                Details
-              </Link>
+              <Link to={{ pathname: `/items/${item.id}`, search: linkSearch }}>Details</Link>
             </Button>
           </div>
         </li>
-      )}
-    </ul>);
-
+      ))}
+    </ul>
+  );
 }

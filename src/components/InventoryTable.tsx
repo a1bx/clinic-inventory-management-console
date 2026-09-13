@@ -17,7 +17,7 @@ interface InventoryTableProps {
 }
 
 const headCell =
-'px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground';
+  'px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground';
 
 export function InventoryTable({ items, linkSearch, onCorrect }: InventoryTableProps) {
   const { hasPendingSync } = useInventory();
@@ -56,8 +56,8 @@ export function InventoryTable({ items, linkSearch, onCorrect }: InventoryTableP
             return (
               <tr
                 key={item.id}
-                className="group row-hover border-b hairline transition-colors last:border-b-0">
-                
+                className="group row-hover border-b hairline transition-colors last:border-b-0"
+              >
                 <td className="relative py-3.5 pl-4 pr-4 align-top">
                   <span
                     aria-hidden="true"
@@ -65,13 +65,14 @@ export function InventoryTable({ items, linkSearch, onCorrect }: InventoryTableP
                       'absolute inset-y-0 left-0 w-[3px]',
                       status === 'out' && 'bar-out',
                       status === 'low' && 'bar-low',
-                      status === 'ok' && 'bg-transparent'
-                    )} />
-                  
+                      status === 'ok' && 'bg-transparent',
+                    )}
+                  />
+
                   <Link
                     to={{ pathname: `/items/${item.id}`, search: linkSearch }}
-                    className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    
+                    className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
                     <span className="font-medium text-foreground group-hover:underline">
                       {item.name}
                     </span>
@@ -81,19 +82,13 @@ export function InventoryTable({ items, linkSearch, onCorrect }: InventoryTableP
                   </Link>
                   {hasPendingSync(item.id) && <PendingSyncTag className="mt-1.5" />}
                 </td>
-                <td className="px-4 py-3.5 align-top text-muted-foreground">
-                  {item.category}
-                </td>
-                <td className="px-4 py-3.5 align-top text-muted-foreground">
-                  {item.location}
-                </td>
+                <td className="px-4 py-3.5 align-top text-muted-foreground">{item.category}</td>
+                <td className="px-4 py-3.5 align-top text-muted-foreground">{item.location}</td>
                 <td className="px-4 py-3.5 align-top">
                   <p className="tabular text-right text-base font-semibold leading-none">
                     {item.onHand}
                   </p>
-                  <p className="mt-1 text-right text-xs text-muted-foreground">
-                    {item.unit}
-                  </p>
+                  <p className="mt-1 text-right text-xs text-muted-foreground">{item.unit}</p>
                   <StockLevelBar item={item} className="mt-2" />
                 </td>
                 <td className="px-4 py-3.5 align-top">
@@ -111,18 +106,18 @@ export function InventoryTable({ items, linkSearch, onCorrect }: InventoryTableP
                     <Button variant="ghost" size="icon-sm" asChild>
                       <Link
                         to={{ pathname: `/items/${item.id}`, search: linkSearch }}
-                        aria-label={`Open ${item.name}`}>
-                        
+                        aria-label={`Open ${item.name}`}
+                      >
                         <ChevronRight className="size-4" />
                       </Link>
                     </Button>
                   </div>
                 </td>
-              </tr>);
-
+              </tr>
+            );
           })}
         </tbody>
       </table>
-    </div>);
-
+    </div>
+  );
 }

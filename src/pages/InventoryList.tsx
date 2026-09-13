@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, PackageSearch } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -18,12 +18,49 @@ interface InventoryListProps {
 }
 
 export function InventoryList({ defaultSort = 'name' }: InventoryListProps) {
-  const { items, loading, error, reload, pendingCount, clinicId } = useInventory();
+  const { items, searchItems, loading, error, reload, pendingCount, clinicId } = useInventory();
   const { filters, update, toggleCategory, clearAll, isFiltered, search } =
-  useInventoryFilters(defaultSort);
+    useInventoryFilters(defaultSort);
   const [adjusting, setAdjusting] = useState<InventoryItem | null>(null);
+  const [searchResults, setSearchResults] = useState<InventoryItem[] | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchRetry, setSearchRetry] = useState(0);
 
-  const results = useMemo(() => filterAndSortItems(items, filters), [items, filters]);
+  useEffect(() => {
+    const query = filters.query.trim();
+    if (!query) {
+      setSearchResults(null);
+      setSearchError(null);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchResults(null);
+    setSearchLoading(true);
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setSearchLoading(true);
+      setSearchError(null);
+      void searchItems(query, controller.signal)
+        .then(setSearchResults)
+        .catch((err: unknown) => {
+          if (!controller.signal.aborted)
+            setSearchError(err instanceof Error ? err.message : 'Search failed.');
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setSearchLoading(false);
+        });
+    }, 250);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [filters.query, searchItems, searchRetry]);
+
+  const results = useMemo(
+    () => filterAndSortItems(searchResults ?? items, filters),
+    [items, searchResults, filters],
+  );
   const pageSize = 20;
   const pageCount = Math.max(1, Math.ceil(results.length / pageSize));
   const page = Math.min(filters.page, pageCount);
@@ -39,8 +76,8 @@ export function InventoryList({ defaultSort = 'name' }: InventoryListProps) {
         </p>
         <h1 className="mt-1.5 text-3xl font-semibold">Stock on hand</h1>
         <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
-          Search, check and correct what the clinic physically holds. Any filtered view or
-          item can be shared by copying the link.
+          Search, check and correct what the clinic physically holds. Any filtered view or item can
+          be shared by copying the link.
         </p>
       </header>
 
@@ -49,8 +86,8 @@ export function InventoryList({ defaultSort = 'name' }: InventoryListProps) {
           items={items}
           status={filters.status}
           pendingCount={pendingCount}
-          onStatusChange={(status) => update({ status })} />
-        
+          onStatusChange={(status) => update({ status })}
+        />
 
         <FilterBar
           filters={filters}
@@ -58,30 +95,38 @@ export function InventoryList({ defaultSort = 'name' }: InventoryListProps) {
           isFiltered={isFiltered}
           onUpdate={update}
           onToggleCategory={toggleCategory}
-          onClearAll={clearAll} />
-        
+          onClearAll={clearAll}
+        />
 
-        {loading ?
-        <LoadingState /> :
-        error ?
-        <ErrorState message={error} onRetry={reload} /> :
-        results.length === 0 ?
-        <EmptyState isFiltered={isFiltered} onClearAll={clearAll} /> :
-
-        <>
+        {loading || searchLoading ? (
+          <LoadingState />
+        ) : error || searchError ? (
+          <ErrorState
+            message={error ?? searchError ?? 'Search failed.'}
+            onRetry={error ? reload : () => setSearchRetry((value) => value + 1)}
+          />
+        ) : results.length === 0 ? (
+          <EmptyState isFiltered={isFiltered} onClearAll={clearAll} />
+        ) : (
+          <>
             <InventoryTable
-            items={visibleResults}
-            linkSearch={linkSearch}
-            onCorrect={setAdjusting} />
-          
+              items={visibleResults}
+              linkSearch={linkSearch}
+              onCorrect={setAdjusting}
+            />
+
             <InventoryCards
-            items={visibleResults}
-            linkSearch={linkSearch}
-            onCorrect={setAdjusting} />
-          
+              items={visibleResults}
+              linkSearch={linkSearch}
+              onCorrect={setAdjusting}
+            />
           </>
-        }
-        <Pagination page={page} pageCount={pageCount} onPageChange={(next) => update({ page: next })} />
+        )}
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          onPageChange={(next) => update({ page: next })}
+        />
       </div>
 
       <AdjustStockDialog
@@ -89,19 +134,59 @@ export function InventoryList({ defaultSort = 'name' }: InventoryListProps) {
         open={adjusting !== null}
         onOpenChange={(open) => {
           if (!open) setAdjusting(null);
-        }} />
-      
-    </div>);
-
+        }}
+      />
+    </div>
+  );
 }
 
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return <div role="alert" className="surface rounded-2xl px-6 py-14 text-center"><p className="font-medium">We couldn’t load stock</p><p className="mt-1 text-sm text-muted-foreground">{message}</p><Button variant="outline" size="sm" className="mt-4" onClick={onRetry}>Try again</Button></div>;
+  return (
+    <div role="alert" className="surface rounded-2xl px-6 py-14 text-center">
+      <p className="font-medium">We couldn’t load stock</p>
+      <p className="mt-1 text-sm text-muted-foreground">{message}</p>
+      <Button variant="outline" size="sm" className="mt-4" onClick={onRetry}>
+        Try again
+      </Button>
+    </div>
+  );
 }
 
-function Pagination({ page, pageCount, onPageChange }: { page: number; pageCount: number; onPageChange: (page: number) => void }) {
+function Pagination({
+  page,
+  pageCount,
+  onPageChange,
+}: {
+  page: number;
+  pageCount: number;
+  onPageChange: (page: number) => void;
+}) {
   if (pageCount <= 1) return null;
-  return <nav className="flex items-center justify-between gap-3 py-4" aria-label="Stock pages"><Button variant="outline" size="sm" onClick={() => onPageChange(page - 1)} disabled={page === 1}><ChevronLeft className="size-4" />Previous</Button><span className="text-sm text-muted-foreground" aria-live="polite">Page {page} of {pageCount}</span><Button variant="outline" size="sm" onClick={() => onPageChange(page + 1)} disabled={page === pageCount}>Next<ChevronRight className="size-4" /></Button></nav>;
+  return (
+    <nav className="flex items-center justify-between gap-3 py-4" aria-label="Stock pages">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(page - 1)}
+        disabled={page === 1}
+      >
+        <ChevronLeft className="size-4" />
+        Previous
+      </Button>
+      <span className="text-sm text-muted-foreground" aria-live="polite">
+        Page {page} of {pageCount}
+      </span>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(page + 1)}
+        disabled={page === pageCount}
+      >
+        Next
+        <ChevronRight className="size-4" />
+      </Button>
+    </nav>
+  );
 }
 
 function LoadingState() {
@@ -109,10 +194,10 @@ function LoadingState() {
     <div
       className="surface divide-y divide-[color:var(--hairline)] overflow-hidden rounded-2xl"
       aria-busy="true"
-      aria-label="Loading stock">
-      
-      {Array.from({ length: 7 }).map((_, index) =>
-      <div key={index} className="flex items-center gap-4 p-4">
+      aria-label="Loading stock"
+    >
+      {Array.from({ length: 7 }).map((_, index) => (
+        <div key={index} className="flex items-center gap-4 p-4">
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-1/3" />
             <Skeleton className="h-3 w-1/5" />
@@ -121,18 +206,12 @@ function LoadingState() {
           <Skeleton className="hidden h-8 w-32 sm:block" />
           <Skeleton className="hidden h-8 w-28 lg:block" />
         </div>
-      )}
-    </div>);
-
+      ))}
+    </div>
+  );
 }
 
-function EmptyState({
-  isFiltered,
-  onClearAll
-
-
-
-}: {isFiltered: boolean;onClearAll: () => void;}) {
+function EmptyState({ isFiltered, onClearAll }: { isFiltered: boolean; onClearAll: () => void }) {
   return (
     <div className="surface rounded-2xl px-6 py-16 text-center">
       <span className="mx-auto flex size-11 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
@@ -140,15 +219,15 @@ function EmptyState({
       </span>
       <p className="mt-3 font-medium">No items match</p>
       <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-        {isFiltered ?
-        'Try a different search term, or widen the category and stock-level filters.' :
-        'This clinic has no tracked stock yet.'}
+        {isFiltered
+          ? 'Try a different search term, or widen the category and stock-level filters.'
+          : 'This clinic has no tracked stock yet.'}
       </p>
-      {isFiltered &&
-      <Button variant="outline" size="sm" className="mt-4" onClick={onClearAll}>
+      {isFiltered && (
+        <Button variant="outline" size="sm" className="mt-4" onClick={onClearAll}>
           Clear filters
         </Button>
-      }
-    </div>);
-
+      )}
+    </div>
+  );
 }

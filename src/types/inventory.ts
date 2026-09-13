@@ -2,13 +2,7 @@ export type StockCategory = string;
 
 export type StockStatus = 'out' | 'low' | 'ok';
 
-export type AdjustmentReason =
-'miscount' |
-'damage' |
-'expiry' |
-'theft' |
-'found' |
-'other';
+export type AdjustmentReason = 'miscount' | 'damage' | 'expiry' | 'theft' | 'found' | 'other';
 
 export interface Clinic {
   id: string;
@@ -53,11 +47,6 @@ export interface AdjustmentDraft {
   note: string;
 }
 
-export type SortKey =
-'name' |
-'stock-asc' |
-'stock-desc' |
-'category' |
-'recently-counted';
+export type SortKey = 'name' | 'stock-asc' | 'stock-desc' | 'category' | 'recently-counted';
 
 export type StatusFilter = 'all' | StockStatus;

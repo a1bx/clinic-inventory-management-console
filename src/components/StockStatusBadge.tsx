@@ -6,7 +6,7 @@ import type { StockStatus } from '../types/inventory';
 const styles: Record<StockStatus, string> = {
   out: 'status-out',
   low: 'status-low',
-  ok: 'status-ok'
+  ok: 'status-ok',
 };
 
 interface StockStatusBadgeProps {
@@ -20,11 +20,11 @@ export function StockStatusBadge({ status, className }: StockStatusBadgeProps) {
       className={cn(
         'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium',
         styles[status],
-        className
-      )}>
-      
+        className,
+      )}
+    >
       <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
       {statusLabels[status]}
-    </span>);
-
+    </span>
+  );
 }

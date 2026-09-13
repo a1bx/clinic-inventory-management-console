@@ -1,15 +1,13 @@
-export default {content: [
-  './index.html',
-  './src/**/*.{js,ts,jsx,tsx}'
-],
+export default {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   darkMode: 'selector',
   theme: {
     container: {
       center: true,
       padding: '2rem',
       screens: {
-        '2xl': '1400px'
-      }
+        '2xl': '1400px',
+      },
     },
     extend: {
       colors: {
@@ -46,12 +44,12 @@ export default {content: [
         'sidebar-ring': 'var(--sidebar-ring)',
         'destructive-foreground': 'var(--destructive-foreground)',
         page: 'var(--page)',
-        hairline: 'var(--hairline)'
+        hairline: 'var(--hairline)',
       },
       fontFamily: {
         heading: ['Geist'],
-        mono: ['"Geist Mono"']
-      }
-    }
-  }
-}
+        mono: ['"Geist Mono"'],
+      },
+    },
+  },
+};

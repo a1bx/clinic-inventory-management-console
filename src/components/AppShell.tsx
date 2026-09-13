@@ -7,8 +7,8 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger } from
-'./ui/DropdownMenu';
+  DropdownMenuTrigger,
+} from './ui/DropdownMenu';
 import { Button } from './ui/Button';
 import { ConnectionToggle, OfflineBanner } from './SyncStatus';
 import { useInventory } from '../contexts/InventoryContext';
@@ -28,8 +28,8 @@ export function AppShell({ children }: AppShellProps) {
         <div className="mx-auto flex h-16 w-full max-w-[1400px] items-center gap-3 px-4 sm:px-6">
           <Link
             to="/"
-            className="flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            
+            className="flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
             <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Boxes className="size-[18px]" />
             </span>
@@ -50,11 +50,11 @@ export function AppShell({ children }: AppShellProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-60">
               <DropdownMenuLabel>Clinic</DropdownMenuLabel>
-              {clinics.map((c) =>
-              <DropdownMenuItem key={c.id} onClick={() => setClinicId(c.id)}>
+              {clinics.map((c) => (
+                <DropdownMenuItem key={c.id} onClick={() => setClinicId(c.id)}>
                   {c.name}
                 </DropdownMenuItem>
-              )}
+              ))}
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
                 More clinics join as they roll out.
@@ -66,19 +66,23 @@ export function AppShell({ children }: AppShellProps) {
             <ConnectionToggle />
             <div className="hidden items-center gap-2.5 border-l hairline pl-3 md:flex">
               <div className="text-right leading-tight">
-                <p className="text-xs font-medium">{user?.firstName} {user?.lastName}</p>
+                <p className="text-xs font-medium">
+                  {user?.firstName} {user?.lastName}
+                </p>
                 <p className="text-xs text-muted-foreground">Supplies team</p>
               </div>
               <span className="flex size-9 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
                 AO
               </span>
-              <Button variant="ghost" size="sm" onClick={logout}>Sign out</Button>
+              <Button variant="ghost" size="sm" onClick={logout}>
+                Sign out
+              </Button>
             </div>
           </div>
         </div>
         <OfflineBanner />
       </header>
       <main className="flex-1">{children}</main>
-    </div>);
-
+    </div>
+  );
 }

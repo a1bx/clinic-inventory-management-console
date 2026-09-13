@@ -11,7 +11,9 @@ import { Login } from './pages/Login';
 
 type DefaultSort = 'name' | 'stock-asc' | 'category' | 'recently-counted';
 
-interface AppProps { defaultSort?: DefaultSort; }
+interface AppProps {
+  defaultSort?: DefaultSort;
+}
 
 export function App({ defaultSort = 'stock-asc' }: AppProps) {
   return (
@@ -22,16 +24,20 @@ export function App({ defaultSort = 'stock-asc' }: AppProps) {
           <Toaster position="bottom-center" richColors closeButton />
         </InventoryProvider>
       </TooltipProvider>
-    </BrowserRouter>);
-
+    </BrowserRouter>
+  );
 }
 
 function AuthenticatedRoutes({ defaultSort }: { defaultSort: DefaultSort }) {
   const { authenticated } = useInventory();
   if (!authenticated) return <Login />;
-  return <AppShell><Routes>
-    <Route path="/" element={<InventoryList defaultSort={defaultSort} />} />
-    <Route path="/items/:itemId" element={<ItemDetail />} />
-    <Route path="*" element={<Navigate to="/" replace />} />
-  </Routes></AppShell>;
+  return (
+    <AppShell>
+      <Routes>
+        <Route path="/" element={<InventoryList defaultSort={defaultSort} />} />
+        <Route path="/items/:itemId" element={<ItemDetail />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AppShell>
+  );
 }

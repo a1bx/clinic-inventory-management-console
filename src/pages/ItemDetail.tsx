@@ -22,8 +22,22 @@ export function ItemDetail() {
 
   const item = itemById(itemId);
 
-  if (loading) return <div className="mx-auto max-w-5xl px-4 py-20 text-center" aria-busy="true"><p className="text-sm text-muted-foreground">Loading item…</p></div>;
-  if (error) return <div role="alert" className="mx-auto max-w-md px-4 py-20 text-center"><h1 className="text-lg font-semibold">Couldn’t load this item</h1><p className="mt-1 text-sm text-muted-foreground">{error}</p><Button variant="outline" className="mt-5" onClick={reload}>Try again</Button></div>;
+  if (loading)
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-20 text-center" aria-busy="true">
+        <p className="text-sm text-muted-foreground">Loading item…</p>
+      </div>
+    );
+  if (error)
+    return (
+      <div role="alert" className="mx-auto max-w-md px-4 py-20 text-center">
+        <h1 className="text-lg font-semibold">Couldn’t load this item</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{error}</p>
+        <Button variant="outline" className="mt-5" onClick={reload}>
+          Try again
+        </Button>
+      </div>
+    );
 
   if (!item) {
     return (
@@ -38,8 +52,8 @@ export function ItemDetail() {
         <Button className="mt-5" asChild>
           <Link to="/">Back to stock list</Link>
         </Button>
-      </div>);
-
+      </div>
+    );
   }
 
   const history = adjustmentsForItem(item.id);
@@ -74,9 +88,10 @@ export function ItemDetail() {
             'h-1 w-full',
             status === 'out' && 'bar-out',
             status === 'low' && 'bar-low',
-            status === 'ok' && 'bar-ok'
-          )} />
-        
+            status === 'ok' && 'bar-ok',
+          )}
+        />
+
         <div className="flex flex-col gap-5 p-5 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
@@ -145,9 +160,9 @@ export function ItemDetail() {
               <dd
                 className={cn(
                   'mt-0.5 font-medium',
-                  expiry?.urgent ? 'text-destructive' : 'text-foreground'
-                )}>
-                
+                  expiry?.urgent ? 'text-destructive' : 'text-foreground',
+                )}
+              >
                 {expiry ? expiry.text : 'Not expiry-tracked'}
               </dd>
             </div>
@@ -156,23 +171,15 @@ export function ItemDetail() {
       </div>
 
       <AdjustStockDialog item={item} open={adjustOpen} onOpenChange={setAdjustOpen} />
-    </div>);
-
+    </div>
+  );
 }
 
-function Detail({
-  label,
-  value,
-  mono = false
-
-
-
-
-}: {label: string;value: string;mono?: boolean;}) {
+function Detail({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className={cn('mt-0.5 font-medium', mono && 'font-mono')}>{value}</dd>
-    </div>);
-
+    </div>
+  );
 }

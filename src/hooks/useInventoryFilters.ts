@@ -24,13 +24,17 @@ export function useInventoryFilters(defaultSort: SortKey = 'name') {
       categories: params.get('cat')?.split(',').filter(Boolean) ?? [],
       status: rawStatus && statuses.includes(rawStatus) ? rawStatus : 'all',
       sort: rawSort && rawSort in sortLabels ? rawSort : defaultSort,
-      page: Math.max(1, Number(params.get('page') ?? '1') || 1)
+      page: Math.max(1, Number(params.get('page') ?? '1') || 1),
     };
   }, [params, defaultSort]);
 
   const update = useCallback(
     (next: Partial<InventoryFilters>) => {
-      const merged = { ...filters, ...next, page: next.page ?? (Object.keys(next).some((key) => key !== 'page') ? 1 : filters.page) };
+      const merged = {
+        ...filters,
+        ...next,
+        page: next.page ?? (Object.keys(next).some((key) => key !== 'page') ? 1 : filters.page),
+      };
       const draft = new URLSearchParams();
       if (merged.query) draft.set('q', merged.query);
       if (merged.categories.length) draft.set('cat', merged.categories.join(','));
@@ -39,17 +43,17 @@ export function useInventoryFilters(defaultSort: SortKey = 'name') {
       if (merged.page > 1) draft.set('page', String(merged.page));
       setParams(draft, { replace: true });
     },
-    [filters, setParams, defaultSort]
+    [filters, setParams, defaultSort],
   );
 
   const toggleCategory = useCallback(
     (category: string) => {
-      const next = filters.categories.includes(category) ?
-      filters.categories.filter((c) => c !== category) :
-      [...filters.categories, category];
+      const next = filters.categories.includes(category)
+        ? filters.categories.filter((c) => c !== category)
+        : [...filters.categories, category];
       update({ categories: next });
     },
-    [filters.categories, update]
+    [filters.categories, update],
   );
 
   const clearAll = useCallback(() => {
@@ -57,7 +61,7 @@ export function useInventoryFilters(defaultSort: SortKey = 'name') {
   }, [setParams]);
 
   const isFiltered =
-  Boolean(filters.query) || filters.categories.length > 0 || filters.status !== 'all';
+    Boolean(filters.query) || filters.categories.length > 0 || filters.status !== 'all';
 
   return { filters, update, toggleCategory, clearAll, isFiltered, search: params.toString() };
 }
