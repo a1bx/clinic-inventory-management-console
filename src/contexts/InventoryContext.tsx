@@ -9,10 +9,18 @@ import {
   updateProduct,
   type ApiUser,
 } from '../api/dummyJson';
-import { productToInventoryItem } from '../utils/product';
-import type { Adjustment, AdjustmentDraft, InventoryItem } from '../types/inventory';
+import { applyClinicProfile, productToInventoryItem } from '../utils/product';
+import type {
+  Adjustment,
+  AdjustmentDraft,
+  InventoryItem,
+  StockItemDraft,
+} from '../types/inventory';
 
 const SESSION_KEY = 'savannah-session';
+const OVERRIDES_KEY = 'savannah-stock-overrides';
+const ADDED_ITEMS_KEY = 'savannah-added-items';
+const ADJUSTMENTS_KEY = 'savannah-adjustments';
 interface StoredSession {
   accessToken: string;
   refreshToken: string;
@@ -39,6 +47,7 @@ interface InventoryContextValue {
   isSyncing: boolean;
   setIsOnline: (online: boolean) => void;
   submitAdjustment: (draft: AdjustmentDraft) => Promise<boolean>;
+  addStockItem: (draft: StockItemDraft) => void;
   clinicId: string;
   setClinicId: (clinicId: string) => void;
 }
@@ -53,6 +62,19 @@ function readSession(): StoredSession | null {
   }
 }
 
+function readStorage<T>(key: string, fallback: T): T {
+  try {
+    const raw = sessionStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeStorage(key: string, value: unknown) {
+  sessionStorage.setItem(key, JSON.stringify(value));
+}
+
 export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<StoredSession | null>(readSession);
   const [authLoading, setAuthLoading] = useState(false);
@@ -60,10 +82,12 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<InventoryItem[]>([]);
-  const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
+  const [adjustments, setAdjustments] = useState<Adjustment[]>(() =>
+    readStorage(ADJUSTMENTS_KEY, []),
+  );
   const [isOnline, setIsOnline] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [clinicId, setClinicId] = useState('clinic-northgate');
+  const [clinicId, setClinicIdState] = useState('clinic-northgate');
   const [reloadKey, setReloadKey] = useState(0);
 
   const login = useCallback(async (username: string, password: string) => {
@@ -81,17 +105,27 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   }, []);
   const logout = useCallback(() => {
     sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(OVERRIDES_KEY);
+    sessionStorage.removeItem(ADDED_ITEMS_KEY);
+    sessionStorage.removeItem(ADJUSTMENTS_KEY);
     setSession(null);
     setItems([]);
+    setAdjustments([]);
   }, []);
   const reload = useCallback(() => setReloadKey((value) => value + 1), []);
+  const setClinicId = useCallback((nextClinicId: string) => {
+    setClinicIdState(nextClinicId);
+    setItems([]);
+  }, []);
   const searchItems = useCallback(
     async (query: string, signal?: AbortSignal) => {
       if (!session || !query.trim()) return [];
       const response = await searchProducts(session.accessToken, query.trim(), signal);
-      return (response.products ?? []).map(productToInventoryItem);
+      return (response.products ?? [])
+        .map(productToInventoryItem)
+        .map((item) => applyClinicProfile(item, clinicId));
     },
-    [session],
+    [clinicId, session],
   );
 
   useEffect(() => {
@@ -101,7 +135,16 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     getProducts(session.accessToken, { limit: 194 })
       .then((response) => {
-        if (!cancelled) setItems((response.products ?? []).map(productToInventoryItem));
+        if (!cancelled) {
+          const overrides = readStorage<Record<string, Partial<InventoryItem>>>(OVERRIDES_KEY, {});
+          const addedItems = readStorage<InventoryItem[]>(ADDED_ITEMS_KEY, []);
+          const apiItems = (response.products ?? [])
+            .map(productToInventoryItem)
+            .map((item) => applyClinicProfile(item, clinicId))
+            .map((item) => ({ ...item, ...overrides[`${clinicId}:${item.id}`] }));
+          setItems([...addedItems.filter((item) => item.clinicId === clinicId), ...apiItems]);
+          setAdjustments(readStorage<Adjustment[]>(ADJUSTMENTS_KEY, []));
+        }
       })
       .catch(async (err: unknown) => {
         if (cancelled) return;
@@ -125,7 +168,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [session, reloadKey, logout]);
+  }, [clinicId, session, reloadKey, logout]);
 
   const submitAdjustment = useCallback(
     async (draft: AdjustmentDraft) => {
@@ -146,25 +189,42 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
           setSession(activeSession);
           updated = await updateProduct(activeSession.accessToken, draft.itemId, draft.countedQty);
         }
-        const mapped = productToInventoryItem(updated);
+        const mapped = applyClinicProfile(productToInventoryItem(updated), clinicId);
+        const countedAt = new Date().toISOString();
+        const savedItem = {
+          ...mapped,
+          onHand: draft.countedQty,
+          lastCountedAt: countedAt,
+          lastCountedBy: `${activeSession.user.firstName} ${activeSession.user.lastName}`,
+        };
         setItems((current) =>
-          current.map((candidate) => (candidate.id === mapped.id ? mapped : candidate)),
+          current.map((candidate) => (candidate.id === savedItem.id ? savedItem : candidate)),
         );
-        setAdjustments((current) => [
-          {
-            id: `adj-${Date.now()}`,
-            itemId: draft.itemId,
-            at: new Date().toISOString(),
-            by: `${activeSession.user.firstName} ${activeSession.user.lastName}`,
-            systemQty: item.onHand,
-            countedQty: draft.countedQty,
-            delta: draft.countedQty - item.onHand,
-            reason: draft.reason,
-            note: draft.note.trim(),
-            synced: true,
-          },
-          ...current,
-        ]);
+        const adjustment: Adjustment = {
+          id: `adj-${Date.now()}`,
+          itemId: draft.itemId,
+          at: countedAt,
+          by: `${activeSession.user.firstName} ${activeSession.user.lastName}`,
+          systemQty: item.onHand,
+          countedQty: draft.countedQty,
+          delta: draft.countedQty - item.onHand,
+          reason: draft.reason,
+          note: draft.note.trim(),
+          synced: true,
+          clinicId,
+        };
+        setAdjustments((current) => {
+          const next = [adjustment, ...current];
+          writeStorage(ADJUSTMENTS_KEY, next);
+          return next;
+        });
+        const overrides = readStorage<Record<string, Partial<InventoryItem>>>(OVERRIDES_KEY, {});
+        overrides[`${clinicId}:${savedItem.id}`] = {
+          onHand: savedItem.onHand,
+          lastCountedAt: savedItem.lastCountedAt,
+          lastCountedBy: savedItem.lastCountedBy,
+        };
+        writeStorage(OVERRIDES_KEY, overrides);
         toast.success(`Saved ${item.name} at ${draft.countedQty} units`);
         return true;
       } catch (err) {
@@ -176,7 +236,35 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         setIsSyncing(false);
       }
     },
-    [items, session],
+    [clinicId, items, session],
+  );
+
+  const addStockItem = useCallback(
+    (draft: StockItemDraft) => {
+      const item: InventoryItem = {
+        id: `local-${Date.now()}`,
+        sku: `CLN-${String(Date.now()).slice(-6)}`,
+        name: draft.name.trim(),
+        category: draft.category,
+        unit: draft.unit.trim() || 'each',
+        onHand: draft.onHand,
+        reorderPoint: draft.reorderPoint,
+        targetLevel: Math.max(draft.reorderPoint * 3, draft.onHand),
+        location: draft.location.trim() || 'Central store · Unassigned',
+        supplier: 'Clinic procurement',
+        expiresOn: null,
+        lastCountedAt: new Date().toISOString(),
+        lastCountedBy: session
+          ? `${session.user.firstName} ${session.user.lastName}`
+          : 'Current user',
+        clinicId,
+      };
+      setItems((current) => [item, ...current]);
+      const addedItems = readStorage<InventoryItem[]>(ADDED_ITEMS_KEY, []);
+      writeStorage(ADDED_ITEMS_KEY, [item, ...addedItems]);
+      toast.success(`${item.name} added to clinic stock`);
+    },
+    [clinicId, session],
   );
 
   const value = useMemo<InventoryContextValue>(
@@ -193,7 +281,10 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       items,
       searchItems,
       adjustments,
-      adjustmentsForItem: (itemId) => adjustments.filter((item) => item.itemId === itemId),
+      adjustmentsForItem: (itemId) =>
+        adjustments.filter(
+          (item) => item.itemId === itemId && (item.clinicId ?? 'clinic-northgate') === clinicId,
+        ),
       itemById: (itemId) => items.find((item) => item.id === itemId),
       hasPendingSync: () => false,
       pendingCount: 0,
@@ -201,6 +292,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       isSyncing,
       setIsOnline,
       submitAdjustment,
+      addStockItem,
       clinicId,
       setClinicId,
     }),
@@ -219,7 +311,9 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       isOnline,
       isSyncing,
       submitAdjustment,
+      addStockItem,
       clinicId,
+      setClinicId,
     ],
   );
   return <InventoryContext.Provider value={value}>{children}</InventoryContext.Provider>;

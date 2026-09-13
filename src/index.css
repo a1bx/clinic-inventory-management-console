@@ -24,8 +24,8 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.255 0.055 230);
+  --primary-foreground: oklch(0.985 0.01 210);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -51,7 +51,7 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --page: oklch(0.975 0.002 250);
+  --page: oklch(1 0 0);
   --hairline: oklch(0.93 0.003 250);
 }
 :root.dark {
@@ -155,4 +155,24 @@
 }
 .text-warn {
   color: var(--chart-4);
+}
+
+.clinic-sidebar {
+  background: linear-gradient(180deg, #102f3d 0%, #0b2634 100%);
+}
+
+.clinic-app .surface {
+  box-shadow:
+    0 1px 2px rgb(15 42 56 / 4%),
+    0 8px 24px -18px rgb(15 42 56 / 20%);
+}
+
+.clinic-app .surface-raised {
+  box-shadow:
+    0 1px 2px rgb(15 42 56 / 5%),
+    0 18px 45px -24px rgb(15 42 56 / 28%);
+}
+
+.clinic-mobile-header + .hidden + main {
+  min-width: 0;
 }

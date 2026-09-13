@@ -79,6 +79,7 @@ export function filterAndSortItems(
     if (!q) return true;
     return (
       item.name.toLowerCase().includes(q) ||
+      Boolean(item.sourceName?.toLowerCase().includes(q)) ||
       item.sku.toLowerCase().includes(q) ||
       item.category.toLowerCase().includes(q) ||
       item.location.toLowerCase().includes(q) ||

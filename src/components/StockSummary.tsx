@@ -25,7 +25,7 @@ export function StockSummary({ items, status, pendingCount, onStatusChange }: St
   }[] = [
     {
       key: 'all',
-      label: 'Tracked items',
+      label: 'Tracked supplies',
       value: items.length,
       hint: 'in this clinic',
       icon: <Boxes className="size-4" />,

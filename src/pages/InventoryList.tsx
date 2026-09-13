@@ -1,5 +1,14 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, PackageSearch } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Activity,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  ExternalLink,
+  PackageSearch,
+  Plus,
+} from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '../components/ui/Button';
 import { Skeleton } from '../components/ui/Skeleton';
 import { FilterBar } from '../components/FilterBar';
@@ -7,6 +16,7 @@ import { StockSummary } from '../components/StockSummary';
 import { InventoryTable } from '../components/InventoryTable';
 import { InventoryCards } from '../components/InventoryCards';
 import { AdjustStockDialog } from '../components/AdjustStockDialog';
+import { AddStockDialog } from '../components/AddStockDialog';
 import { useInventory } from '../contexts/InventoryContext';
 import { useInventoryFilters } from '../hooks/useInventoryFilters';
 import { filterAndSortItems } from '../utils/stock';
@@ -26,6 +36,7 @@ export function InventoryList({ defaultSort = 'name' }: InventoryListProps) {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchRetry, setSearchRetry] = useState(0);
+  const [addStockOpen, setAddStockOpen] = useState(false);
 
   useEffect(() => {
     const query = filters.query.trim();
@@ -61,24 +72,88 @@ export function InventoryList({ defaultSort = 'name' }: InventoryListProps) {
     () => filterAndSortItems(searchResults ?? items, filters),
     [items, searchResults, filters],
   );
-  const pageSize = 20;
+  const pageSize = 7;
   const pageCount = Math.max(1, Math.ceil(results.length / pageSize));
   const page = Math.min(filters.page, pageCount);
   const visibleResults = results.slice((page - 1) * pageSize, page * pageSize);
   const clinic = clinics.find((c) => c.id === clinicId);
   const linkSearch = search ? `?${search}` : '';
 
+  const shareView = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success('Inventory view link copied');
+    } catch {
+      toast.error('Could not copy the inventory link');
+    }
+  };
+
+  const exportCsv = () => {
+    const rows = [
+      ['Item', 'SKU', 'Category', 'Location', 'On hand', 'Unit', 'Status'],
+      ...results.map((item) => [
+        item.name,
+        item.sku,
+        item.category,
+        item.location,
+        String(item.onHand),
+        item.unit,
+        item.onHand <= 0
+          ? 'Out of stock'
+          : item.onHand <= item.reorderPoint
+            ? 'Low stock'
+            : 'In stock',
+      ]),
+    ];
+    const csv = rows
+      .map((row) => row.map((value) => `"${value.replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'clinic-stock.csv';
+    anchor.click();
+    URL.revokeObjectURL(url);
+    toast.success('Stock list exported');
+  };
+
   return (
-    <div className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:py-8">
-      <header className="mb-6">
-        <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-          {clinic?.shortName ?? 'Clinic'}
-        </p>
-        <h1 className="mt-1.5 text-3xl font-semibold">Stock on hand</h1>
-        <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
-          Search, check and correct what the clinic physically holds. Any filtered view or item can
-          be shared by copying the link.
-        </p>
+    <div className="mx-auto w-full max-w-[1500px] px-4 py-7 sm:px-8 lg:py-10">
+      <header className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2"></div>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+            Clinic stock on hand
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            A calm, current view of the supplies your care teams rely on. Search, monitor and
+            correct physical counts.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 md:justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-10 rounded-xl border-slate-300 bg-white"
+            onClick={() => void shareView()}
+          >
+            <ExternalLink className="size-4" />
+            Share link
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-10 rounded-xl border-slate-300 bg-white"
+            onClick={exportCsv}
+          >
+            <Download className="size-4" />
+            Export CSV
+          </Button>
+          <Button size="sm" className="h-10 rounded-xl" onClick={() => setAddStockOpen(true)}>
+            <Plus className="size-4" />
+            Add stock item
+          </Button>
+        </div>
       </header>
 
       <div className="space-y-4">
@@ -125,6 +200,8 @@ export function InventoryList({ defaultSort = 'name' }: InventoryListProps) {
         <Pagination
           page={page}
           pageCount={pageCount}
+          resultCount={results.length}
+          pageSize={pageSize}
           onPageChange={(next) => update({ page: next })}
         />
       </div>
@@ -136,6 +213,7 @@ export function InventoryList({ defaultSort = 'name' }: InventoryListProps) {
           if (!open) setAdjusting(null);
         }}
       />
+      <AddStockDialog open={addStockOpen} onOpenChange={setAddStockOpen} />
     </div>
   );
 }
@@ -155,15 +233,22 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 function Pagination({
   page,
   pageCount,
+  resultCount,
+  pageSize,
   onPageChange,
 }: {
   page: number;
   pageCount: number;
+  resultCount: number;
+  pageSize: number;
   onPageChange: (page: number) => void;
 }) {
   if (pageCount <= 1) return null;
   return (
-    <nav className="flex items-center justify-between gap-3 py-4" aria-label="Stock pages">
+    <nav
+      className="surface flex items-center justify-between gap-3 rounded-2xl px-4 py-3"
+      aria-label="Stock pages"
+    >
       <Button
         variant="outline"
         size="sm"
@@ -173,8 +258,13 @@ function Pagination({
         <ChevronLeft className="size-4" />
         Previous
       </Button>
-      <span className="text-sm text-muted-foreground" aria-live="polite">
-        Page {page} of {pageCount}
+      <span className="text-center text-sm text-muted-foreground" aria-live="polite">
+        <span className="block">
+          Page {page} of {pageCount}
+        </span>
+        <span className="text-xs">
+          {Math.min(pageSize, resultCount - (page - 1) * pageSize)} supplies on this page
+        </span>
       </span>
       <Button
         variant="outline"

@@ -25,11 +25,15 @@ export interface InventoryItem {
   lastCountedAt: string;
   lastCountedBy: string;
   clinicId: string;
+  sourceName?: string;
+  sourceCategory?: string;
+  sourceSupplier?: string;
 }
 
 export interface Adjustment {
   id: string;
   itemId: string;
+  clinicId?: string;
   at: string;
   by: string;
   systemQty: number;
@@ -45,6 +49,15 @@ export interface AdjustmentDraft {
   countedQty: number;
   reason: AdjustmentReason;
   note: string;
+}
+
+export interface StockItemDraft {
+  name: string;
+  category: string;
+  unit: string;
+  location: string;
+  onHand: number;
+  reorderPoint: number;
 }
 
 export type SortKey = 'name' | 'stock-asc' | 'stock-desc' | 'category' | 'recently-counted';

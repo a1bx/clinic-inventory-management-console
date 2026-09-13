@@ -3,24 +3,36 @@ import { History } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { fullTime, reasonLabels, relativeTime } from '../utils/stock';
 import { PendingSyncTag } from './SyncStatus';
+import { Button } from './ui/Button';
 import type { Adjustment } from '../types/inventory';
 
 interface AdjustmentHistoryProps {
   adjustments: Adjustment[];
   unit: string;
+  onRecord?: () => void;
 }
 
-export function AdjustmentHistory({ adjustments, unit }: AdjustmentHistoryProps) {
+export function AdjustmentHistory({ adjustments, unit, onRecord }: AdjustmentHistoryProps) {
   if (adjustments.length === 0) {
     return (
-      <div className="surface rounded-2xl p-8 text-center">
-        <span className="mx-auto flex size-10 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+      <div className="flex min-h-64 flex-col items-center justify-center p-8 text-center">
+        <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
           <History className="size-4" />
         </span>
         <p className="mt-3 text-sm font-medium">No corrections yet</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Counts recorded against this item will appear here.
+        <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-muted-foreground">
+          Counts recorded against this item will appear here with a timestamp, previous quantity,
+          updated count, and staff member details.
         </p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-5"
+          onClick={onRecord}
+          disabled={!onRecord}
+        >
+          Record manual baseline count
+        </Button>
       </div>
     );
   }

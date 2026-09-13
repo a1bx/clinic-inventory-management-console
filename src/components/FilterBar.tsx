@@ -44,7 +44,7 @@ export function FilterBar({
             type="search"
             value={filters.query}
             onChange={(e) => onUpdate({ query: e.target.value })}
-            placeholder="Search by name, code, location or supplier"
+            placeholder="Search supplies, SKU, location or supplier"
             aria-label="Search stock"
             className="h-11 rounded-xl pl-9 text-base lg:text-sm"
           />

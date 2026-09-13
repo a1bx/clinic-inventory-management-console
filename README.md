@@ -10,7 +10,9 @@ The shell owns navigation, signed-in user identity, connection status and the cl
 
 Authentication and server data live in `InventoryContext`; the short-lived DummyJSON session is stored in `sessionStorage`, while stock is fetched into context and refreshed after an update. Search, category, status, sort and page are URL state so reloads and copied links reproduce the same view. Dialog fields and transient save state are local UI state.
 
-The API response is mapped to the clinic vocabulary without inventing clinical data: product title becomes the item name, product stock becomes on-hand quantity, and generic location/unit labels are explicitly documented as display fallbacks. The mock API does not persist PUT changes, so the UI updates the local session after a successful response and refetches on a later reload.
+The API response is presented through a clinic inventory vocabulary: product stock and IDs remain the source of truth, while a deterministic presentation mapping supplies operational names, categories, units and storage locations. The original DummyJSON product title, category and supplier are retained internally for search and traceability. This makes the scenario readable as a clinic console without pretending DummyJSON contains clinical product data. The mock API does not persist PUT changes, so after a successful response the app stores the corrected quantity, last-counted metadata and correction history in `sessionStorage` and reapplies them after reload.
+
+New stock items are added to the active browser session because DummyJSON does not provide a durable clinic-specific inventory store or a required create workflow. CSV export downloads the current filtered result set, including the clinical display fields.
 
 Decision log:
 

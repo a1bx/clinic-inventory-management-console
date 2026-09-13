@@ -1,8 +1,8 @@
 import type { Adjustment, Clinic, InventoryItem, StockCategory } from '../types/inventory';
 
 export const clinics: Clinic[] = [
-  { id: 'clinic-northgate', name: 'Northgate Family Clinic', shortName: 'Northgate' },
-  { id: 'clinic-riverside', name: 'Riverside Health Centre', shortName: 'Riverside' },
+  { id: 'clinic-northgate', name: 'Northgate Family Clinic' },
+  { id: 'clinic-riverside', name: 'Riverside Health Centre' },
 ];
 
 export const categories: StockCategory[] = [
