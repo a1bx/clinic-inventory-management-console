@@ -51,4 +51,4 @@ AI was used by section as follows:
 
 No spec-driven framework was used; work was structured by implementing the four assessment sections in order and checking each required user outcome. The tools used were the coding agent, TypeScript, React, Vite, Vitest, ESLint, Prettier, Husky, commitlint, GitHub Actions and Vercel. One useful AI suggestion was separating URL state from server and UI state. One subtle issue caught during review was that searching hidden DummyJSON source names made “Samsung” return unrelated clinical items; that field was removed from user-facing search. Decisions made without AI were the clinic stock presentation, the failed-correction behavior, and the multi-clinic availability model because they are product judgments.
 
-Time spent: **12 hours**.
+Time spent: **17 hours**.
